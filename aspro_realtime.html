@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASPRO 방송복 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+[data-theme="dark"] {
+  --bg:#0e0d0b; --surface:#1c1a16; --surface2:#2a2720;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.13);
+  --gold:#c9a84c; --gold-dim:#a8893a; --gold-pale:#f5e9c8;
+  --cream:#f2ede4; --cream2:#e8e0d0; --muted:#7a7060;
+  --ghost:rgba(201,168,76,0.12); --glass:rgba(255,255,255,0.04);
+  --header-bg:rgba(14,13,11,0.93); --input-bg:rgba(255,255,255,0.04);
+  --add-row:rgba(255,255,255,0.02); --shadow:0 2px 10px rgba(0,0,0,0.25);
+  --se-bg:rgba(201,168,76,0.05); --se-border:rgba(201,168,76,0.25);
+  --size-cell:#2a2720; --size-border:rgba(255,255,255,0.07);
+  --cnt-bg:rgba(255,255,255,0.05); --cnt-border:rgba(255,255,255,0.10);
+  --chip-bg:rgba(255,255,255,0.04); --chip-border:rgba(255,255,255,0.08);
+  --btn-del-c:rgba(255,255,255,0.18); --brand-hover:rgba(255,255,255,0.03);
+  --toggle-dot:#c9a84c; --toggle-x:0px;
+}
+[data-theme="light"] {
+  --bg:#f4f2ee; --surface:#ffffff; --surface2:#eeece8;
+  --border:rgba(0,0,0,0.08); --border2:rgba(0,0,0,0.13);
+  --gold:#9a6f28; --gold-dim:#7a5518; --gold-pale:#5a3e0a;
+  --cream:#1a1714; --cream2:#2e2a22; --muted:#8a8070;
+  --ghost:rgba(154,111,40,0.10); --glass:rgba(0,0,0,0.02);
+  --header-bg:rgba(244,242,238,0.95); --input-bg:rgba(0,0,0,0.03);
+  --add-row:rgba(0,0,0,0.02); --shadow:0 2px 12px rgba(0,0,0,0.07);
+  --se-bg:rgba(154,111,40,0.05); --se-border:rgba(154,111,40,0.25);
+  --size-cell:#f8f6f2; --size-border:rgba(0,0,0,0.07);
+  --cnt-bg:rgba(0,0,0,0.04); --cnt-border:rgba(0,0,0,0.09);
+  --chip-bg:rgba(0,0,0,0.03); --chip-border:rgba(0,0,0,0.07);
+  --btn-del-c:rgba(0,0,0,0.20); --brand-hover:rgba(0,0,0,0.025);
+  --toggle-dot:#9a6f28; --toggle-x:20px;
+}
+
+body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--cream); min-height:100vh; padding-bottom:80px; transition:background .3s,color .3s; }
+[data-theme="dark"] body { background-image: radial-gradient(ellipse 60% 40% at 80% 0%,rgba(201,168,76,0.07) 0%,transparent 60%), radial-gradient(ellipse 40% 30% at 10% 100%,rgba(201,168,76,0.04) 0%,transparent 50%); }
+
+/* ── SYNC INDICATOR ── */
+.sync-bar { height:3px; background:var(--surface); position:fixed; top:0; left:0; right:0; z-index:999; }
+.sync-bar-inner { height:100%; width:0; background:var(--gold); transition:width .3s,opacity .5s; border-radius:0 2px 2px 0; }
+.sync-bar-inner.syncing { width:70%; }
+.sync-bar-inner.done { width:100%; opacity:0; }
+
+.sync-status {
+  display:flex; align-items:center; gap:5px;
+  font-size:10px; letter-spacing:.8px; text-transform:uppercase; color:var(--muted);
+}
+.sync-dot { width:6px; height:6px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:background .3s; }
+.sync-dot.online { background:#2ecc71; box-shadow:0 0 6px rgba(46,204,113,0.5); }
+.sync-dot.saving { background:var(--gold); animation:pulse .8s infinite; }
+.sync-dot.error { background:#e74c3c; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.header { position:sticky; top:0; z-index:200; background:var(--header-bg); backdrop-filter:blur(20px); border-bottom:1px solid var(--border2); padding:0 20px; transition:background .3s; }
+.header-inner { max-width:720px; margin:0 auto; padding:16px 0 0; }
+.header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.logo { display:flex; align-items:baseline; gap:10px; }
+.logo-text { font-family:'DM Serif Display',serif; font-size:26px; letter-spacing:4px; color:var(--gold); }
+.logo-sub { font-size:10px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); font-weight:300; }
+.header-right { display:flex; align-items:center; gap:12px; }
+
+.theme-toggle { width:46px; height:26px; border-radius:13px; border:1px solid var(--border2); background:var(--surface2); cursor:pointer; position:relative; transition:background .25s; flex-shrink:0; display:flex; align-items:center; padding:0 4px; justify-content:space-between; }
+.theme-icon { font-size:12px; line-height:1; pointer-events:none; z-index:1; }
+.theme-knob { position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--toggle-dot); transform:translateX(var(--toggle-x)); transition:transform .25s, background .25s; }
+
+.add-brand-bar { display:flex; gap:8px; margin-bottom:14px; }
+.add-brand-bar input { flex:1; height:42px; background:var(--input-bg); border:1px solid var(--border2); border-radius:12px; color:var(--cream); font-family:inherit; font-size:13px; padding:0 14px; outline:none; transition:border-color .2s; }
+.add-brand-bar input::placeholder { color:var(--muted); }
+.add-brand-bar input:focus { border-color:var(--gold); }
+.btn-gold { height:42px; padding:0 18px; background:var(--gold); color:#fff; border:none; border-radius:12px; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition:opacity .15s,transform .1s; }
+[data-theme="dark"] .btn-gold { color:#0e0d0b; }
+.btn-gold:hover { opacity:.88; }
+.btn-gold:active { transform:scale(.97); }
+
+.tabs { display:flex; }
+.tab-btn { flex:1; height:40px; background:none; border:none; border-bottom:2px solid transparent; color:var(--muted); font-family:inherit; font-size:13px; font-weight:500; letter-spacing:.5px; cursor:pointer; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:6px; }
+.tab-btn:hover { color:var(--cream2); }
+.tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); }
+.tab-badge { background:var(--ghost); border:1px solid rgba(154,111,40,0.3); color:var(--gold); font-size:10px; font-weight:600; padding:1px 6px; border-radius:10px; min-width:20px; text-align:center; }
+
+.main { max-width:720px; margin:0 auto; padding:20px 20px 0; }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+.empty-state { text-align:center; padding:80px 20px; animation:fadeUp .5s ease; }
+.empty-icon { font-size:40px; margin-bottom:14px; }
+.empty-title { font-family:'DM Serif Display',serif; font-size:20px; color:var(--cream2); margin-bottom:6px; }
+.empty-desc { font-size:13px; color:var(--muted); line-height:1.8; }
+
+.brand-block { background:var(--surface); border:1px solid var(--border); border-radius:18px; margin-bottom:14px; overflow:hidden; box-shadow:var(--shadow); animation:fadeUp .3s ease; transition:border-color .2s,background .3s; }
+.brand-block:hover { border-color:var(--border2); }
+.brand-header { display:flex; align-items:center; padding:16px 18px; cursor:pointer; gap:12px; user-select:none; transition:background .15s; }
+.brand-header:hover { background:var(--brand-hover); }
+.brand-chevron { width:22px; height:22px; border:1px solid rgba(154,111,40,0.35); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:9px; flex-shrink:0; transition:transform .3s,background .2s; }
+.brand-chevron.open { transform:rotate(180deg); background:var(--ghost); }
+.brand-info { flex:1; min-width:0; }
+.brand-name { font-family:'DM Serif Display',serif; font-size:18px; color:var(--cream); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.brand-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+.brand-badge { background:var(--ghost); border:1px solid rgba(154,111,40,0.3); color:var(--gold); font-size:11px; font-weight:500; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+.btn-del-brand { background:none; border:1px solid var(--border2); color:var(--muted); border-radius:8px; padding:5px 10px; font-family:inherit; font-size:11px; cursor:pointer; flex-shrink:0; transition:all .15s; }
+.btn-del-brand:hover { background:rgba(192,57,43,0.10); color:#e74c3c; border-color:rgba(192,57,43,0.4); }
+.brand-body { max-height:0; overflow:hidden; transition:max-height .35s cubic-bezier(.4,0,.2,1); border-top:0px solid var(--border); }
+.brand-body.open { max-height:9999px; border-top-width:1px; }
+
+.add-product-row { display:flex; gap:8px; padding:12px 16px; background:var(--add-row); }
+.add-product-row input { flex:1; height:38px; background:var(--input-bg); border:1px solid var(--border); border-radius:12px; color:var(--cream); font-family:inherit; font-size:13px; padding:0 12px; outline:none; transition:border-color .15s; }
+.add-product-row input::placeholder { color:var(--muted); }
+.add-product-row input:focus { border-color:var(--gold); }
+.btn-add-product { height:38px; padding:0 14px; background:var(--ghost); color:var(--gold); border:1px solid rgba(154,111,40,0.3); border-radius:12px; font-family:inherit; font-size:12px; font-weight:500; cursor:pointer; white-space:nowrap; transition:opacity .15s; }
+.btn-add-product:hover { opacity:.75; }
+.product-item { border-top:1px solid var(--border); padding:14px 16px; animation:fadeUp .25s ease; }
+.product-top { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.product-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); opacity:.6; flex-shrink:0; }
+.product-name { flex:1; font-size:14px; font-weight:500; color:var(--cream); }
+.btn-size-toggle { padding:4px 9px; background:none; border:1px solid var(--border); border-radius:7px; color:var(--muted); font-family:inherit; font-size:11px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.btn-size-toggle:hover,.btn-size-toggle.active { color:var(--gold); border-color:rgba(154,111,40,0.4); background:var(--ghost); }
+.btn-del-product { width:28px; height:28px; display:flex; align-items:center; justify-content:center; background:none; border:none; border-radius:7px; font-size:18px; color:var(--btn-del-c); cursor:pointer; transition:all .15s; flex-shrink:0; }
+.btn-del-product:hover { color:#e74c3c; background:rgba(192,57,43,0.10); }
+
+.size-editor { overflow:hidden; max-height:0; transition:max-height .25s ease,opacity .2s; opacity:0; }
+.size-editor.show { max-height:200px; opacity:1; margin-bottom:12px; }
+.size-editor-inner { background:var(--se-bg); border:1px dashed var(--se-border); border-radius:12px; padding:10px 12px; }
+.size-editor-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; color:var(--gold-dim); margin-bottom:8px; }
+.size-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+.size-tag { display:inline-flex; align-items:center; gap:3px; background:var(--ghost); border:1px solid rgba(154,111,40,0.3); border-radius:6px; padding:3px 4px 3px 9px; font-size:12px; font-weight:500; color:var(--gold-pale); }
+.size-tag-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; line-height:1; padding:0 2px; transition:color .15s; }
+.size-tag-del:hover { color:#e74c3c; }
+.size-add-row { display:flex; gap:6px; }
+.size-add-row input { width:80px; height:30px; background:var(--input-bg); border:1px solid var(--se-border); border-radius:7px; color:var(--cream); font-family:inherit; font-size:13px; text-align:center; outline:none; }
+.size-add-row input:focus { border-color:var(--gold); }
+.btn-size-add { height:30px; padding:0 12px; background:var(--ghost); color:var(--gold); border:1px solid rgba(154,111,40,0.35); border-radius:7px; font-family:inherit; font-size:12px; font-weight:500; cursor:pointer; }
+
+.sizes-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+@media(max-width:420px){.sizes-grid,.memo-sizes-grid{grid-template-columns:repeat(2,1fr);}}
+.size-cell { background:var(--size-cell); border:1px solid var(--size-border); border-radius:12px; padding:10px 8px 12px; display:flex; flex-direction:column; align-items:center; gap:6px; transition:border-color .2s,background .3s; }
+.size-cell:hover { border-color:rgba(154,111,40,0.3); }
+.size-lbl { font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+.size-cnt { font-family:'DM Serif Display',serif; font-size:28px; color:var(--cream); line-height:1; min-height:34px; display:flex; align-items:center; transition:color .15s; }
+.size-cnt.nonzero { color:var(--gold); }
+.counter-btns { display:flex; gap:5px; }
+.btn-cnt { width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:var(--cnt-bg); border:1px solid var(--cnt-border); border-radius:10px; color:var(--muted); font-size:14px; cursor:pointer; transition:all .15s; }
+.btn-cnt.up:hover { background:rgba(39,174,96,0.15); color:#2ecc71; border-color:rgba(39,174,96,0.35); }
+.btn-cnt.dn:hover { background:rgba(192,57,43,0.15); color:#e74c3c; border-color:rgba(192,57,43,0.35); }
+.btn-cnt:active { transform:scale(.9); }
+.no-sizes-msg,.product-empty-msg { text-align:center; padding:14px; font-size:12px; color:var(--muted); }
+
+.memo-panel { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:20px; margin-bottom:20px; box-shadow:var(--shadow); transition:background .3s; }
+.panel-title { font-family:'DM Serif Display',serif; font-size:15px; color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.panel-title::before { content:''; display:block; width:3px; height:15px; background:var(--gold); border-radius:2px; }
+.memo-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.memo-field { display:flex; flex-direction:column; gap:5px; }
+.memo-label { font-size:10px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+.memo-select { height:42px; background:var(--input-bg); border:1px solid var(--border2); border-radius:12px; color:var(--cream); font-family:inherit; font-size:13px; padding:0 32px 0 12px; outline:none; cursor:pointer; transition:border-color .15s; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a7060' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; }
+.memo-select:focus { border-color:var(--gold); }
+.memo-select option { background:var(--surface); color:var(--cream); }
+.memo-select:disabled { opacity:.4; cursor:not-allowed; }
+
+.memo-sizes-wrap { background:var(--add-row); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:14px; display:none; }
+.memo-sizes-wrap.show { display:block; }
+.memo-sizes-label { font-size:10px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.memo-sizes-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.memo-size-cell { background:var(--size-cell); border:1px solid var(--size-border); border-radius:12px; padding:10px 6px 12px; display:flex; flex-direction:column; align-items:center; gap:5px; transition:background .3s; }
+.memo-size-lbl { font-size:11px; font-weight:600; letter-spacing:1px; color:var(--muted); }
+.memo-size-current { font-size:10px; color:var(--muted); display:flex; align-items:center; gap:3px; }
+.memo-size-current-val { color:var(--gold); font-weight:500; }
+.memo-size-input-wrap { display:flex; align-items:center; gap:4px; }
+.memo-sign-btn { width:28px; height:28px; border-radius:7px; border:1px solid var(--border2); background:var(--cnt-bg); color:var(--muted); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.memo-sign-btn.plus:hover { background:rgba(39,174,96,0.15); color:#2ecc71; border-color:rgba(39,174,96,0.35); }
+.memo-sign-btn.minus:hover { background:rgba(192,57,43,0.15); color:#e74c3c; border-color:rgba(192,57,43,0.35); }
+.memo-sign-btn.active-plus { background:rgba(39,174,96,0.18); color:#2ecc71; border-color:rgba(39,174,96,0.4); }
+.memo-sign-btn.active-minus { background:rgba(192,57,43,0.18); color:#e74c3c; border-color:rgba(192,57,43,0.4); }
+.memo-qty-input { width:44px; height:32px; background:var(--input-bg); border:1px solid var(--border2); border-radius:7px; color:var(--cream); font-family:inherit; font-size:14px; font-weight:500; text-align:center; outline:none; transition:border-color .15s; }
+.memo-qty-input:focus { border-color:var(--gold); }
+.memo-size-after { font-size:11px; display:flex; align-items:center; gap:3px; }
+.after-arrow { color:var(--muted); font-size:10px; }
+.after-val { font-weight:600; color:var(--cream); }
+.after-val.plus-color { color:#27ae60; }
+.after-val.minus-color { color:#c0392b; }
+
+.memo-reason-wrap { margin-bottom:16px; }
+.memo-textarea { width:100%; min-height:72px; background:var(--input-bg); border:1px solid var(--border2); border-radius:12px; color:var(--cream); font-family:inherit; font-size:13px; padding:10px 12px; outline:none; resize:vertical; line-height:1.6; margin-top:5px; transition:border-color .15s; }
+.memo-textarea::placeholder { color:var(--muted); }
+.memo-textarea:focus { border-color:var(--gold); }
+.memo-submit-row { display:flex; justify-content:flex-end; }
+.btn-apply { height:42px; padding:0 28px; background:linear-gradient(135deg,var(--gold) 0%,#e0b84a 100%); color:#fff; border:none; border-radius:12px; font-family:inherit; font-size:14px; font-weight:700; letter-spacing:.5px; cursor:pointer; transition:all .15s; box-shadow:0 2px 12px rgba(154,111,40,0.25); }
+[data-theme="dark"] .btn-apply { color:#0e0d0b; }
+.btn-apply:hover { transform:translateY(-1px); box-shadow:0 4px 18px rgba(154,111,40,0.4); }
+.btn-apply:active { transform:scale(.97); }
+
+.log-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.log-title { font-family:'DM Serif Display',serif; font-size:16px; color:var(--cream2); display:flex; align-items:center; gap:8px; }
+.log-title::before { content:''; display:block; width:3px; height:16px; background:var(--muted); border-radius:2px; }
+.btn-clear-log { background:none; border:1px solid var(--border2); color:var(--muted); border-radius:8px; padding:4px 10px; font-family:inherit; font-size:11px; cursor:pointer; transition:all .15s; }
+.btn-clear-log:hover { background:rgba(192,57,43,0.10); color:#e74c3c; border-color:rgba(192,57,43,0.4); }
+.log-empty { text-align:center; padding:40px 20px; font-size:13px; color:var(--muted); }
+
+.log-item { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:14px 44px 14px 18px; margin-bottom:10px; animation:fadeUp .25s ease; position:relative; overflow:hidden; transition:border-color .2s,background .3s; }
+.log-item::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--gold); border-radius:3px 0 0 3px; }
+.log-item:hover { border-color:rgba(154,111,40,0.25); }
+.log-meta { display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+.log-datetime { font-size:11px; color:var(--muted); background:var(--chip-bg); border:1px solid var(--chip-border); border-radius:5px; padding:2px 7px; }
+.log-brand-tag { font-size:11px; font-weight:600; color:var(--gold); background:var(--ghost); border:1px solid rgba(154,111,40,0.3); border-radius:5px; padding:2px 8px; }
+.log-product-tag { font-size:11px; color:var(--cream2); background:var(--chip-bg); border:1px solid var(--chip-border); border-radius:5px; padding:2px 8px; }
+.log-changes { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:7px; }
+.log-change-chip { font-size:11px; font-weight:500; border-radius:5px; padding:2px 8px; }
+.log-change-chip.plus { background:rgba(39,174,96,0.12); color:#27ae60; border:1px solid rgba(39,174,96,0.28); }
+.log-change-chip.minus { background:rgba(192,57,43,0.12); color:#c0392b; border:1px solid rgba(192,57,43,0.28); }
+.log-reason-view { font-size:13px; color:var(--cream); line-height:1.6; padding-top:6px; border-top:1px solid var(--border); white-space:pre-wrap; }
+.log-reason-empty { color:var(--muted); font-style:italic; }
+.log-reason-edit { display:none; padding-top:6px; border-top:1px solid var(--border); }
+.log-reason-edit.show { display:block; }
+.log-reason-textarea { width:100%; min-height:60px; background:var(--input-bg); border:1px solid var(--gold); border-radius:8px; color:var(--cream); font-family:inherit; font-size:13px; padding:8px 10px; outline:none; resize:vertical; line-height:1.6; margin-bottom:6px; }
+.log-reason-actions { display:flex; gap:6px; justify-content:flex-end; }
+.btn-save-reason { height:30px; padding:0 14px; background:var(--gold); color:#fff; border:none; border-radius:7px; font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+[data-theme="dark"] .btn-save-reason { color:#0e0d0b; }
+.btn-cancel-reason { height:30px; padding:0 12px; background:none; border:1px solid var(--border2); color:var(--muted); border-radius:7px; font-family:inherit; font-size:12px; cursor:pointer; }
+.log-actions { position:absolute; top:10px; right:10px; display:flex; gap:3px; }
+.log-btn { width:26px; height:26px; display:flex; align-items:center; justify-content:center; background:none; border:none; border-radius:6px; font-size:13px; cursor:pointer; color:var(--muted); transition:all .15s; }
+.log-btn.edit:hover { color:var(--gold); background:var(--ghost); }
+.log-btn.del:hover { color:#e74c3c; background:rgba(192,57,43,0.10); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- 상단 동기화 진행 바 -->
+<div class="sync-bar"><div class="sync-bar-inner" id="sync-bar-inner"></div></div>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="logo">
+        <span class="logo-text">ASPRO</span>
+        <span class="logo-sub">방송복 관리</span>
+      </div>
+      <div class="header-right">
+        <div class="sync-status">
+          <div class="sync-dot" id="sync-dot"></div>
+          <span id="sync-text">연결 중...</span>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()" title="다크/라이트 전환">
+          <span class="theme-icon moon">🌙</span>
+          <span class="theme-knob"></span>
+          <span class="theme-icon sun">☀️</span>
+        </button>
+      </div>
+    </div>
+    <div class="add-brand-bar">
+      <input type="text" id="brand-inp" placeholder="브랜드명 입력 (예: 엔니튜드, 제이슨우)" onkeydown="if(event.key==='Enter')addBrand()">
+      <button class="btn-gold" onclick="addBrand()">+ 브랜드 추가</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-stock" onclick="switchTab('stock')">📦 재고 관리</button>
+      <button class="tab-btn" id="tab-memo" onclick="switchTab('memo')">📝 비고 <span class="tab-badge" id="log-badge">0</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="tab-panel active" id="panel-stock">
+    <div id="main-stock"></div>
+  </div>
+  <div class="tab-panel" id="panel-memo">
+    <div class="memo-panel">
+      <div class="panel-title">재고 변경 입력</div>
+      <div class="memo-grid">
+        <div class="memo-field">
+          <div class="memo-label">브랜드 선택</div>
+          <select class="memo-select" id="m-brand" onchange="onBrandSelect()"><option value="">-- 브랜드 선택 --</option></select>
+        </div>
+        <div class="memo-field">
+          <div class="memo-label">제품 선택</div>
+          <select class="memo-select" id="m-product" onchange="onProductSelect()" disabled><option value="">-- 제품 선택 --</option></select>
+        </div>
+      </div>
+      <div class="memo-sizes-wrap" id="memo-sizes-wrap">
+        <div class="memo-sizes-label">사이즈별 수량 조정 (+ 증가 / − 감소)</div>
+        <div class="memo-sizes-grid" id="memo-sizes-grid"></div>
+      </div>
+      <div class="memo-reason-wrap">
+        <div class="memo-label">사유 / 내용</div>
+        <textarea class="memo-textarea" id="m-reason" placeholder="예: 방송 후 입고&#10;예: 55 사이즈 불량 반품"></textarea>
+      </div>
+      <div class="memo-submit-row">
+        <button class="btn-apply" id="btn-apply" onclick="applyMemo()">✓ 적용</button>
+      </div>
+    </div>
+    <div class="log-header">
+      <div class="log-title">변경 기록</div>
+      <button class="btn-clear-log" onclick="clearLogs()">전체 삭제</button>
+    </div>
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+/* ══════════════════════════
+   🔥 FIREBASE 설정
+══════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyB6zxbLHqygI4bVc5KFG8cEzKrMF9COUlk",
+  authDomain: "aspro-inventory.firebaseapp.com",
+  databaseURL: "https://aspro-inventory-default-rtdb.firebaseio.com",
+  projectId: "aspro-inventory",
+  storageBucket: "aspro-inventory.firebasestorage.app",
+  messagingSenderId: "42624200704",
+  appId: "1:42624200704:web:5ef50df2d603044228e8e5"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* ══════════════════════════
+   STATE
+══════════════════════════ */
+let DB = { brands:[], expanded:{}, pInputs:{}, sizeEdit:{}, logs:[], theme:'dark' };
+let memoAdj = {};
+let editingLogId = null;
+let isSyncing = false;
+
+/* ══════════════════════════
+   SYNC UI
+══════════════════════════ */
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  const bar = document.getElementById('sync-bar-inner');
+  if (status === 'online') {
+    dot.className = 'sync-dot online';
+    txt.textContent = '실시간 연결됨';
+    bar.className = 'sync-bar-inner done';
+    setTimeout(() => bar.className = 'sync-bar-inner', 600);
+  } else if (status === 'saving') {
+    dot.className = 'sync-dot saving';
+    txt.textContent = '저장 중...';
+    bar.className = 'sync-bar-inner syncing';
+  } else if (status === 'error') {
+    dot.className = 'sync-dot error';
+    txt.textContent = '연결 오류';
+  } else {
+    dot.className = 'sync-dot';
+    txt.textContent = '연결 중...';
+  }
+}
+
+/* ══════════════════════════
+   FIREBASE SAVE / LOAD
+══════════════════════════ */
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  setSyncStatus('saving');
+  saveTimer = setTimeout(() => {
+    const data = {
+      brands: DB.brands,
+      logs: DB.logs,
+      theme: DB.theme
+    };
+    set(ref(db, 'aspro'), data)
+      .then(() => setSyncStatus('online'))
+      .catch(() => setSyncStatus('error'));
+  }, 400);
+}
+
+// 테마는 로컬에만 저장 (각자 선호 모드)
+function saveThemeLocal(t) {
+  try { localStorage.setItem('aspro_theme', t); } catch(e) {}
+}
+function loadThemeLocal() {
+  try { return localStorage.getItem('aspro_theme') || 'dark'; } catch(e) { return 'dark'; }
+}
+
+// Firebase 실시간 리스닝
+onValue(ref(db, 'aspro'), (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    DB.brands = data.brands || [];
+    DB.logs = data.logs || [];
+  } else {
+    DB.brands = [];
+    DB.logs = [];
+  }
+  setSyncStatus('online');
+  updateLogBadge();
+  renderStock();
+  renderLogs();
+  if (document.getElementById('panel-memo').classList.contains('active')) {
+    refreshMemoSelects();
+  }
+}, (error) => {
+  setSyncStatus('error');
+});
+
+/* ══════════════════════════
+   THEME
+══════════════════════════ */
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  DB.theme = t;
+  saveThemeLocal(t);
+}
+window.toggleTheme = () => applyTheme(DB.theme === 'dark' ? 'light' : 'dark');
+
+/* ══════════════════════════
+   HELPERS
+══════════════════════════ */
+function uid() { return '_'+Math.random().toString(36).slice(2,9); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function nowStr(){
+  const d=new Date();
+  return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function totalStock(brand){ return brand.products.reduce((s,p)=>s+(p.sizes||[]).reduce((a,sz)=>a+(p.counts[sz]||0),0),0); }
+function el(tag,cls){ const e=document.createElement(tag); if(cls) e.className=cls; return e; }
+
+/* ══════════════════════════
+   TAB
+══════════════════════════ */
+window.switchTab = (t) => {
+  ['stock','memo'].forEach(x=>{
+    document.getElementById('panel-'+x).classList.toggle('active',x===t);
+    document.getElementById('tab-'+x).classList.toggle('active',x===t);
+  });
+  if(t==='memo'){ refreshMemoSelects(); renderLogs(); }
+};
+
+/* ══════════════════════════
+   BRAND
+══════════════════════════ */
+window.addBrand = () => {
+  const inp=document.getElementById('brand-inp');
+  const name=inp.value.trim(); if(!name){inp.focus();return;}
+  const id=uid();
+  DB.brands.push({id,name,products:[]});
+  DB.expanded[id]=true; DB.pInputs[id]='';
+  inp.value=''; save(); inp.focus();
+};
+
+function deleteBrand(bid){
+  const b=DB.brands.find(x=>x.id===bid); if(!b)return;
+  if(!confirm(`'${b.name}' 브랜드와 제품 ${b.products.length}개를 모두 삭제할까요?`))return;
+  DB.brands=DB.brands.filter(x=>x.id!==bid); save();
+}
+function toggleBrand(bid){ DB.expanded[bid]=!DB.expanded[bid]; renderStock(); }
+
+/* ══════════════════════════
+   PRODUCT
+══════════════════════════ */
+function addProduct(bid){
+  const name=(DB.pInputs[bid]||'').trim(); if(!name)return;
+  const b=DB.brands.find(x=>x.id===bid); if(!b)return;
+  const counts={}; ['55','66','77','88'].forEach(s=>counts[s]=0);
+  b.products.push({id:uid(),name,sizes:['55','66','77','88'],counts});
+  DB.pInputs[bid]=''; save();
+}
+function deleteProduct(bid,pid){
+  const b=DB.brands.find(x=>x.id===bid); if(!b)return;
+  b.products=b.products.filter(p=>p.id!==pid); save();
+}
+function changeCount(bid,pid,sz,delta){
+  const b=DB.brands.find(x=>x.id===bid);
+  const p=b&&b.products.find(x=>x.id===pid); if(!p)return;
+  p.counts[sz]=Math.max(0,(p.counts[sz]||0)+delta); save();
+}
+function toggleSizeEdit(bid,pid){ const k=bid+'__'+pid; DB.sizeEdit[k]=!DB.sizeEdit[k]; renderStock(); }
+function deleteSize(bid,pid,sz){
+  const b=DB.brands.find(x=>x.id===bid);
+  const p=b&&b.products.find(x=>x.id===pid); if(!p)return;
+  p.sizes=p.sizes.filter(s=>s!==sz); delete p.counts[sz]; save();
+}
+function addSize(bid,pid){
+  const inp=document.getElementById('sinp__'+bid+'__'+pid); if(!inp)return;
+  const val=inp.value.trim(); if(!val)return;
+  const b=DB.brands.find(x=>x.id===bid);
+  const p=b&&b.products.find(x=>x.id===pid);
+  if(!p||p.sizes.includes(val)){inp.value='';return;}
+  p.sizes.push(val); p.counts[val]=0; inp.value=''; save();
+}
+
+/* ══════════════════════════
+   MEMO SELECTS
+══════════════════════════ */
+function refreshMemoSelects(){
+  const bSel=document.getElementById('m-brand'); const curBid=bSel.value;
+  bSel.innerHTML='<option value="">-- 브랜드 선택 --</option>';
+  DB.brands.forEach(b=>{const o=document.createElement('option');o.value=b.id;o.textContent=b.name;if(b.id===curBid)o.selected=true;bSel.appendChild(o);});
+  if(curBid&&DB.brands.find(b=>b.id===curBid)) refreshProductSelect(curBid);
+  else{ const pSel=document.getElementById('m-product');pSel.innerHTML='<option value="">-- 제품 선택 --</option>';pSel.disabled=true;document.getElementById('memo-sizes-wrap').classList.remove('show'); }
+}
+window.onBrandSelect = () => {
+  const bid=document.getElementById('m-brand').value;
+  memoAdj={}; document.getElementById('memo-sizes-wrap').classList.remove('show');
+  if(!bid){const pSel=document.getElementById('m-product');pSel.innerHTML='<option value="">-- 제품 선택 --</option>';pSel.disabled=true;return;}
+  refreshProductSelect(bid);
+};
+function refreshProductSelect(bid){
+  const b=DB.brands.find(x=>x.id===bid);
+  const pSel=document.getElementById('m-product'); const curPid=pSel.value;
+  pSel.innerHTML='<option value="">-- 제품 선택 --</option>'; pSel.disabled=false;
+  if(b)b.products.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;if(p.id===curPid)o.selected=true;pSel.appendChild(o);});
+}
+window.onProductSelect = () => {
+  const bid=document.getElementById('m-brand').value;
+  const pid=document.getElementById('m-product').value;
+  memoAdj={};
+  if(!bid||!pid){document.getElementById('memo-sizes-wrap').classList.remove('show');return;}
+  const b=DB.brands.find(x=>x.id===bid);
+  const p=b&&b.products.find(x=>x.id===pid); if(!p)return;
+  p.sizes.forEach(sz=>{memoAdj[sz]={sign:1,qty:0};});
+  renderMemoSizes(p);
+  document.getElementById('memo-sizes-wrap').classList.add('show');
+};
+
+function renderMemoSizes(product){
+  const grid=document.getElementById('memo-sizes-grid'); grid.innerHTML='';
+  product.sizes.forEach(sz=>{
+    const adj=memoAdj[sz]||{sign:1,qty:0};
+    const current=product.counts[sz]||0;
+    const after=Math.max(0,current+adj.sign*adj.qty);
+    const cell=el('div','memo-size-cell');
+    const lbl=el('div','memo-size-lbl');lbl.textContent=sz;
+    const cur=el('div','memo-size-current');cur.innerHTML=`현재 <span class="memo-size-current-val">${current}</span>`;
+    const inputWrap=el('div','memo-size-input-wrap');
+    const minusBtn=el('button','memo-sign-btn minus'+(adj.sign===-1?' active-minus':''));minusBtn.textContent='−';
+    minusBtn.onclick=()=>{memoAdj[sz].sign=-1;renderMemoSizes(product);};
+    const qtyInp=el('input','memo-qty-input');qtyInp.type='number';qtyInp.min='0';qtyInp.value=adj.qty||'';qtyInp.placeholder='0';
+    qtyInp.oninput=e=>{
+      const v=Math.max(0,parseInt(e.target.value)||0);memoAdj[sz].qty=v;
+      const av=Math.max(0,current+memoAdj[sz].sign*v);
+      const ae=cell.querySelector('.after-val');
+      if(ae){ae.textContent=av;const d=av-current;ae.className='after-val'+(d>0?' plus-color':d<0?' minus-color':'');}
+    };
+    const plusBtn=el('button','memo-sign-btn plus'+(adj.sign===1?' active-plus':''));plusBtn.textContent='+';
+    plusBtn.onclick=()=>{memoAdj[sz].sign=1;renderMemoSizes(product);};
+    inputWrap.appendChild(minusBtn);inputWrap.appendChild(qtyInp);inputWrap.appendChild(plusBtn);
+    const afterDiv=el('div','memo-size-after');
+    const arr=el('span','after-arrow');arr.textContent='→';
+    const afterValEl=el('span','after-val'+(after-current>0?' plus-color':after-current<0?' minus-color':''));afterValEl.textContent=after;
+    afterDiv.appendChild(arr);afterDiv.appendChild(afterValEl);
+    cell.appendChild(lbl);cell.appendChild(cur);cell.appendChild(inputWrap);cell.appendChild(afterDiv);
+    grid.appendChild(cell);
+  });
+}
+
+/* ══════════════════════════
+   APPLY MEMO
+══════════════════════════ */
+window.applyMemo = () => {
+  const bid=document.getElementById('m-brand').value;
+  const pid=document.getElementById('m-product').value;
+  const reason=document.getElementById('m-reason').value.trim();
+  if(!bid||!pid){alert('브랜드와 제품을 선택해주세요.');return;}
+  const b=DB.brands.find(x=>x.id===bid);
+  const p=b&&b.products.find(x=>x.id===pid); if(!p)return;
+  const changes=[];
+  p.sizes.forEach(sz=>{
+    const adj=memoAdj[sz];
+    if(adj&&adj.qty>0){
+      const before=p.counts[sz]||0;
+      const after=Math.max(0,before+adj.sign*adj.qty);
+      if(after!==before){p.counts[sz]=after;changes.push({sz,before,after,delta:after-before});}
+    }
+  });
+  if(changes.length===0&&!reason){alert('변경할 수량이나 사유를 입력해주세요.');return;}
+  if(!DB.logs) DB.logs=[];
+  DB.logs.unshift({id:uid(),dt:nowStr(),brandName:b.name,productName:p.name,changes,reason});
+  memoAdj={};
+  document.getElementById('m-brand').value='';
+  document.getElementById('m-product').innerHTML='<option value="">-- 제품 선택 --</option>';
+  document.getElementById('m-product').disabled=true;
+  document.getElementById('m-reason').value='';
+  document.getElementById('memo-sizes-wrap').classList.remove('show');
+  save();
+  const btn=document.getElementById('btn-apply');
+  btn.textContent='✓ 적용 완료!';btn.style.background='linear-gradient(135deg,#2ecc71,#27ae60)';
+  setTimeout(()=>{btn.textContent='✓ 적용';btn.style.background='';},1400);
+};
+
+/* ══════════════════════════
+   LOG
+══════════════════════════ */
+function deleteLog(lid){
+  DB.logs=DB.logs.filter(l=>l.id!==lid);
+  if(editingLogId===lid)editingLogId=null;
+  save();
+}
+window.clearLogs = () => {
+  if(!DB.logs||!DB.logs.length)return;
+  if(!confirm(`기록 ${DB.logs.length}개를 모두 삭제할까요?`))return;
+  DB.logs=[]; editingLogId=null; save();
+};
+function startEditLog(lid){ editingLogId=(editingLogId===lid)?null:lid; renderLogs(); }
+function saveLogReason(lid){
+  const ta=document.getElementById('edit-ta-'+lid); if(!ta)return;
+  const log=DB.logs.find(l=>l.id===lid); if(!log)return;
+  log.reason=ta.value.trim(); editingLogId=null; save();
+}
+function cancelEdit(){ editingLogId=null; renderLogs(); }
+function updateLogBadge(){ document.getElementById('log-badge').textContent=(DB.logs||[]).length; }
+
+/* ══════════════════════════
+   RENDER LOGS
+══════════════════════════ */
+function renderLogs(){
+  const list=document.getElementById('log-list'); list.innerHTML='';
+  const logs=DB.logs||[];
+  if(!logs.length){const empty=el('div','log-empty');empty.textContent='아직 변경 기록이 없어요.';list.appendChild(empty);return;}
+  logs.forEach(log=>{
+    const item=el('div','log-item');
+    const actions=el('div','log-actions');
+    const editBtn=el('button','log-btn edit');editBtn.title='사유 편집';editBtn.textContent='✏️';editBtn.onclick=()=>startEditLog(log.id);
+    const delBtn=el('button','log-btn del');delBtn.title='삭제';delBtn.textContent='🗑';delBtn.onclick=()=>deleteLog(log.id);
+    actions.appendChild(editBtn);actions.appendChild(delBtn);item.appendChild(actions);
+    const meta=el('div','log-meta');
+    const dt=el('span','log-datetime');dt.textContent=log.dt;meta.appendChild(dt);
+    if(log.brandName){const bt=el('span','log-brand-tag');bt.textContent=log.brandName;meta.appendChild(bt);}
+    if(log.productName){const pt=el('span','log-product-tag');pt.textContent=log.productName;meta.appendChild(pt);}
+    item.appendChild(meta);
+    if(log.changes&&log.changes.length>0){
+      const chips=el('div','log-changes');
+      log.changes.forEach(c=>{const chip=el('span','log-change-chip'+(c.delta>0?' plus':' minus'));chip.textContent=`${c.sz}: ${c.before}→${c.after} (${c.delta>0?'+':''}${c.delta})`;chips.appendChild(chip);});
+      item.appendChild(chips);
+    }
+    const isEditing=(editingLogId===log.id);
+    const view=el('div','log-reason-view');
+    if(log.reason){view.textContent=log.reason;}
+    else{view.textContent='(사유 없음)';view.classList.add('log-reason-empty');}
+    if(isEditing)view.style.display='none';
+    item.appendChild(view);
+    const editArea=el('div','log-reason-edit'+(isEditing?' show':''));
+    const ta=el('textarea','log-reason-textarea');ta.id='edit-ta-'+log.id;ta.value=log.reason||'';ta.placeholder='사유를 입력하세요';
+    ta.onkeydown=e=>{if(e.key==='Enter'&&e.ctrlKey)saveLogReason(log.id);};
+    const ract=el('div','log-reason-actions');
+    const saveBtn=el('button','btn-save-reason');saveBtn.textContent='저장';saveBtn.onclick=()=>saveLogReason(log.id);
+    const cancelBtn=el('button','btn-cancel-reason');cancelBtn.textContent='취소';cancelBtn.onclick=cancelEdit;
+    ract.appendChild(cancelBtn);ract.appendChild(saveBtn);
+    editArea.appendChild(ta);editArea.appendChild(ract);item.appendChild(editArea);
+    list.appendChild(item);
+    if(isEditing)setTimeout(()=>{const t=document.getElementById('edit-ta-'+log.id);if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length);}},40);
+  });
+}
+
+/* ══════════════════════════
+   RENDER STOCK
+══════════════════════════ */
+function renderStock(){
+  const main=document.getElementById('main-stock'); main.innerHTML='';
+  if(!DB.brands||!DB.brands.length){
+    const es=el('div','empty-state');
+    es.innerHTML=`<div class="empty-icon">🏷️</div><div class="empty-title">브랜드를 추가해보세요</div><div class="empty-desc">상단 입력창에 브랜드명을 입력하고<br>추가 버튼을 눌러 시작하세요</div>`;
+    main.appendChild(es);return;
+  }
+  DB.brands.forEach(brand=>{
+    const isOpen=!!DB.expanded[brand.id];
+    const block=el('div','brand-block');
+    const hdr=el('div','brand-header');hdr.onclick=()=>toggleBrand(brand.id);
+    const chev=el('span','brand-chevron'+(isOpen?' open':''));chev.textContent='▾';
+    const info=el('div','brand-info');
+    const nm=el('div','brand-name');nm.textContent=brand.name;
+    const meta=el('div','brand-meta');meta.textContent=`제품 ${brand.products.length}종`;
+    info.appendChild(nm);info.appendChild(meta);
+    const badge=el('span','brand-badge');badge.textContent=`재고 ${totalStock(brand)}`;
+    const delBtn=el('button','btn-del-brand');delBtn.textContent='삭제';
+    delBtn.onclick=e=>{e.stopPropagation();deleteBrand(brand.id);};
+    hdr.appendChild(chev);hdr.appendChild(info);hdr.appendChild(badge);hdr.appendChild(delBtn);
+    block.appendChild(hdr);
+    const body=el('div','brand-body'+(isOpen?' open':''));
+    const addRow=el('div','add-product-row');
+    const pInp=el('input');pInp.type='text';pInp.placeholder='제품명 입력 (예: 플라워 원피스)';
+    pInp.value=DB.pInputs[brand.id]||'';
+    pInp.oninput=e=>{DB.pInputs[brand.id]=e.target.value;};
+    pInp.onkeydown=e=>{if(e.key==='Enter')addProduct(brand.id);};
+    const pAddBtn=el('button','btn-add-product');pAddBtn.textContent='+ 제품 추가';
+    pAddBtn.onclick=()=>addProduct(brand.id);
+    addRow.appendChild(pInp);addRow.appendChild(pAddBtn);body.appendChild(addRow);
+    if(!brand.products.length){const ph=el('div','product-empty-msg');ph.textContent='제품을 추가해보세요';body.appendChild(ph);}
+    brand.products.forEach(product=>{
+      const seKey=brand.id+'__'+product.id;
+      const seOpen=!!DB.sizeEdit[seKey];
+      const item=el('div','product-item');
+      const ptop=el('div','product-top');
+      ptop.appendChild(el('span','product-dot'));
+      const pname=el('span','product-name');pname.textContent=product.name;
+      const editBtn=el('button','btn-size-toggle'+(seOpen?' active':''));editBtn.textContent='사이즈 편집';
+      editBtn.onclick=()=>toggleSizeEdit(brand.id,product.id);
+      const delP=el('button','btn-del-product');delP.textContent='×';
+      delP.onclick=()=>deleteProduct(brand.id,product.id);
+      ptop.appendChild(pname);ptop.appendChild(editBtn);ptop.appendChild(delP);
+      item.appendChild(ptop);
+      const se=el('div','size-editor'+(seOpen?' show':''));
+      const sei=el('div','size-editor-inner');
+      const selbl=el('div','size-editor-label');selbl.textContent='Size Management';sei.appendChild(selbl);
+      const tags=el('div','size-tags');
+      product.sizes.forEach(sz=>{
+        const tag=el('span','size-tag');tag.appendChild(document.createTextNode(sz));
+        const tdel=el('button','size-tag-del');tdel.textContent='×';
+        tdel.onclick=()=>deleteSize(brand.id,product.id,sz);
+        tag.appendChild(tdel);tags.appendChild(tag);
+      });
+      if(!product.sizes.length){const none=el('span');none.style.cssText='font-size:11px;color:var(--muted)';none.textContent='사이즈 없음';tags.appendChild(none);}
+      sei.appendChild(tags);
+      const sar=el('div','size-add-row');
+      const sinp=el('input');sinp.type='text';sinp.id='sinp__'+seKey;sinp.placeholder='예: 100';sinp.maxLength=6;
+      sinp.onkeydown=e=>{if(e.key==='Enter')addSize(brand.id,product.id);};
+      const saBtn=el('button','btn-size-add');saBtn.textContent='+ 추가';saBtn.onclick=()=>addSize(brand.id,product.id);
+      sar.appendChild(sinp);sar.appendChild(saBtn);sei.appendChild(sar);se.appendChild(sei);item.appendChild(se);
+      if(!product.sizes.length){const nsm=el('div','no-sizes-msg');nsm.textContent='사이즈 편집에서 사이즈를 추가해주세요';item.appendChild(nsm);}
+      else{
+        const grid=el('div','sizes-grid');
+        product.sizes.forEach(sz=>{
+          const cell=el('div','size-cell');
+          const lbl=el('div','size-lbl');lbl.textContent=sz;
+          const cnt=product.counts[sz]||0;
+          const cntDiv=el('div','size-cnt'+(cnt>0?' nonzero':''));cntDiv.textContent=cnt;
+          const btns=el('div','counter-btns');
+          const upBtn=el('button','btn-cnt up');upBtn.textContent='▲';upBtn.onclick=()=>changeCount(brand.id,product.id,sz,1);
+          const dnBtn=el('button','btn-cnt dn');dnBtn.textContent='▼';dnBtn.onclick=()=>changeCount(brand.id,product.id,sz,-1);
+          btns.appendChild(upBtn);btns.appendChild(dnBtn);
+          cell.appendChild(lbl);cell.appendChild(cntDiv);cell.appendChild(btns);grid.appendChild(cell);
+        });
+        item.appendChild(grid);
+      }
+      body.appendChild(item);
+    });
+    block.appendChild(body);main.appendChild(block);
+  });
+}
+
+/* ══════════════════════════
+   INIT
+══════════════════════════ */
+applyTheme(loadThemeLocal());
+updateLogBadge();
+renderStock();
+renderLogs();
+
+</script>
+</body>
+</html>
